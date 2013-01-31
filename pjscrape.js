@@ -616,6 +616,9 @@ var pjs = (function(){
                             var moreUrls = page.evaluate(s.opts.moreUrls);
                             if (moreUrls && (!s.opts.maxDepth || s.depth < s.opts.maxDepth)) {
                                 if (moreUrls.length) {
+                                    if(s.opts.filterUrls) {
+                                        moreUrls = s.opts.filterUrls(moreUrls);
+                                    }
                                     log.msg('Found ' + moreUrls.length + ' additional urls to scrape');
                                     // make a new sub-suite
                                     var ss = new ScraperSuite(s.title + '-sub' + i++, moreUrls, s.opts);
@@ -673,12 +676,14 @@ var pjs = (function(){
                         console.log('requested: ' + JSON.stringify(req, undefined, 4));
                     }
                 };
-                
+                // page.onUrlChanged = function(targetURL) {};
+
                 // set user defined pageSettings
                 page.settings = extend(page.settings, config.pageSettings);
                 
+                page.open('about:blank', runScrape);
                 // run the scrape
-                page.open(url, function(status) {
+                function runScrape(status) { page.open(url, function(status) {
                     // check for load errors
                     if (status != "success") {
                         log.error('Page did not load (status=' + status + '): ' + url);
@@ -700,9 +705,11 @@ var pjs = (function(){
                     visited[url] = true;
                     log.msg('Scraping ' + url);
                     // load jQuery
-                    page.injectJs('client/jquery.js');
-                    page.evaluate(function() { 
-                        window._pjs$ = jQuery.noConflict(true); 
+                    if( !opts.jQueryLoaded ) {
+                        page.injectJs('client/jquery.js');
+                    }
+                    page.evaluate(function() {
+                        window._pjs$ = jQuery; // jQuery.noConflict(true); 
                     });
                     // load pjscrape client-side code
                     page.injectJs('client/pjscrape_client.js');
@@ -778,7 +785,7 @@ var pjs = (function(){
                             complete(page);
                         }
                     });
-                });
+                })}
             }
         };
         
